@@ -4,20 +4,11 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
-import com.expenseflow.app.data.AppDatabase
 import com.expenseflow.app.data.SettingsRepository
-import com.expenseflow.app.data.TransactionEntity
-import com.expenseflow.app.data.TransactionRepository
-import com.expenseflow.app.notifications.NotificationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
 
 /**
  * Listens for incoming SMS, and for anything that reads as a bank/UPI/card
@@ -58,35 +49,6 @@ class SmsReceiver : BroadcastReceiver() {
 
         val parsed = SmsParser.parse(body) ?: return
 
-        val database = AppDatabase.getDatabase(context)
-        val repository = TransactionRepository(
-            database.transactionDao(), database.budgetDao(), database.goalDao(), database.billDao(),
-            database.plannedExpenseDao(), database.categoryMetaDao(), database.categoryDao(), context,
-        )
-
-        val now = Calendar.getInstance().time
-        val category = "Other"
-        val iconColor: Color = Color(0xFF2E9BF5) // CategoryVisuals falls back to CategoryTone.BLUE for "Other"
-
-        val transaction = TransactionEntity(
-            title = parsed.title,
-            category = category,
-            amount = parsed.amount,
-            date = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(now),
-            time = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(now),
-            iconName = category,
-            iconColor = iconColor.toArgb().toLong(),
-            isExpense = parsed.isExpense,
-        )
-        repository.insert(transaction)
-
-        val settings = settingsRepository.settings.first()
-        NotificationHelper.showTransactionDetected(
-            context = context,
-            title = parsed.title,
-            amount = parsed.amount,
-            isExpense = parsed.isExpense,
-            currencySymbol = settings.currencySymbol,
-        )
+        PaymentLogger.log(context, parsed)
     }
 }

@@ -25,6 +25,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -71,6 +72,21 @@ fun SettingsScreen(
         androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
     ) { granted ->
         if (granted.values.all { it }) settingsViewModel.setSmsAutoDetect(true)
+    }
+
+    // Notification access can only be granted from system settings, so track whether it's on
+    // and re-check whenever the user comes back from that screen.
+    val context = androidx.compose.ui.platform.LocalContext.current
+    fun notificationAccessOn() = androidx.core.app.NotificationManagerCompat
+        .getEnabledListenerPackages(context).contains(context.packageName)
+    var notificationAccess by remember { mutableStateOf(notificationAccessOn()) }
+    val lifecycleOwner = context as? androidx.lifecycle.LifecycleOwner
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) notificationAccess = notificationAccessOn()
+        }
+        lifecycleOwner?.lifecycle?.addObserver(observer)
+        onDispose { lifecycleOwner?.lifecycle?.removeObserver(observer) }
     }
 
     // Once the conversion lands (the persisted currency now matches the pick), close the dialog.
@@ -145,7 +161,7 @@ fun SettingsScreen(
             SettingsRow(Lucide.CalendarDays, CategoryTone.PURPLE, "Weekly Summary", null, trailing = { EFToggle(settings.weeklySummary) { settingsViewModel.setWeeklySummary(it) } })
             SettingsRow(Lucide.Info, CategoryTone.GREEN, "Goal Milestones", null, trailing = { EFToggle(settings.goalMilestones) { settingsViewModel.setGoalMilestones(it) } })
             SettingsRow(
-                Lucide.MessageSquare, CategoryTone.BLUE, "Auto-detect from SMS", "Log credits/debits from bank SMS", last = true,
+                Lucide.MessageSquare, CategoryTone.BLUE, "Auto-detect from SMS", "Log credits/debits from bank SMS",
                 trailing = {
                     EFToggle(settings.smsAutoDetect) { enabled ->
                         if (enabled) {
@@ -155,6 +171,16 @@ fun SettingsScreen(
                         } else {
                             settingsViewModel.setSmsAutoDetect(false)
                         }
+                    }
+                },
+            )
+            SettingsRow(
+                Lucide.Bell, CategoryTone.GREEN, "Read payment notifications", "Paytm, GPay, PhonePe, banks…", last = true,
+                trailing = {
+                    EFToggle(notificationAccess) {
+                        context.startActivity(
+                            android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                        )
                     }
                 },
             )

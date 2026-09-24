@@ -53,12 +53,24 @@ object SmsParser {
         RegexOption.IGNORE_CASE,
     )
 
-    fun parse(body: String): ParsedSmsTransaction? {
+    // Payment-app notifications ("Paid ₹10 to X", "₹10 sent to X", "Payment of ₹10 successful")
+    // use looser wording than bank SMS, so they get a few extra verbs.
+    private val notificationDebitWords = Regex(
+        """\b(sent|payment successful|payment of .{1,20} successful|transferred)\b""",
+        RegexOption.IGNORE_CASE,
+    )
+
+    /** Like [parse], but also understands payment-app notification phrasing. */
+    fun parseNotification(text: String): ParsedSmsTransaction? =
+        parse(text) ?: parse(text, extraDebit = true)
+
+    fun parse(body: String, extraDebit: Boolean = false): ParsedSmsTransaction? {
         val text = body.trim()
         if (text.isEmpty()) return null
         if (exclusionWords.containsMatchIn(text)) return null
 
-        val isDebit = debitWords.containsMatchIn(text)
+        val isDebit = debitWords.containsMatchIn(text) ||
+            (extraDebit && notificationDebitWords.containsMatchIn(text))
         val isCredit = creditWords.containsMatchIn(text)
         // Ambiguous (mentions both, or neither) — not confident enough to auto-log.
         if (isDebit == isCredit) return null
