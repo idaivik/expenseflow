@@ -21,6 +21,8 @@ data class Settings(
     val goalMilestones: Boolean = true,
     /** What the transactions list totals show: "expense", "income", or "net" (income - expense). */
     val transactionDisplayMode: String = "expense",
+    /** Auto-detect credit/debit transactions from incoming bank SMS. */
+    val smsAutoDetect: Boolean = true,
 ) {
     val currencySymbol: String
         get() = when (currencyCode) {
@@ -42,6 +44,7 @@ class SettingsRepository(context: Context) {
         val GOALS = booleanPreferencesKey("goal_milestones")
         val DISMISSED_NOTIFICATIONS = stringSetPreferencesKey("dismissed_notifications")
         val TX_DISPLAY_MODE = stringPreferencesKey("transaction_display_mode")
+        val SMS_AUTO_DETECT = booleanPreferencesKey("sms_auto_detect")
     }
 
     val settings: Flow<Settings> = store.data.map { p ->
@@ -53,6 +56,7 @@ class SettingsRepository(context: Context) {
             weeklySummary = p[Keys.WEEKLY] ?: false,
             goalMilestones = p[Keys.GOALS] ?: true,
             transactionDisplayMode = p[Keys.TX_DISPLAY_MODE] ?: "expense",
+            smsAutoDetect = p[Keys.SMS_AUTO_DETECT] ?: true,
         )
     }
 
@@ -63,6 +67,7 @@ class SettingsRepository(context: Context) {
     suspend fun setWeeklySummary(value: Boolean) = store.edit { it[Keys.WEEKLY] = value }
     suspend fun setGoalMilestones(value: Boolean) = store.edit { it[Keys.GOALS] = value }
     suspend fun setTransactionDisplayMode(mode: String) = store.edit { it[Keys.TX_DISPLAY_MODE] = mode }
+    suspend fun setSmsAutoDetect(value: Boolean) = store.edit { it[Keys.SMS_AUTO_DETECT] = value }
 
     /**
      * Ids of notifications the user has dismissed, kept forever (not per-session) so a

@@ -22,6 +22,7 @@ class SettingsViewModel(private val repo: SettingsRepository) : ViewModel() {
     fun setWeeklySummary(value: Boolean) = viewModelScope.launch { repo.setWeeklySummary(value) }
     fun setGoalMilestones(value: Boolean) = viewModelScope.launch { repo.setGoalMilestones(value) }
     fun setTransactionDisplayMode(mode: String) = viewModelScope.launch { repo.setTransactionDisplayMode(mode) }
+    fun setSmsAutoDetect(value: Boolean) = viewModelScope.launch { repo.setSmsAutoDetect(value) }
 }
 
 class SettingsViewModelFactory(private val repo: SettingsRepository) : ViewModelProvider.Factory {

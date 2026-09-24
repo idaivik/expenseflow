@@ -65,6 +65,14 @@ fun SettingsScreen(
     // The currency the user tapped, awaiting confirmation of the conversion.
     var pendingCurrency by remember { mutableStateOf<String?>(null) }
 
+    // Turning SMS auto-detect on needs the RECEIVE_SMS/READ_SMS runtime permissions
+    // first; only persist the toggle once the user actually grants them.
+    val smsPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { granted ->
+        if (granted.values.all { it }) settingsViewModel.setSmsAutoDetect(true)
+    }
+
     // Once the conversion lands (the persisted currency now matches the pick), close the dialog.
     LaunchedEffect(settings.currencyCode) {
         if (pendingCurrency != null && settings.currencyCode == pendingCurrency) pendingCurrency = null
@@ -135,7 +143,21 @@ fun SettingsScreen(
             SettingsRow(Lucide.Bell, CategoryTone.ORANGE, "Budget Alerts", "When you near a limit", trailing = { EFToggle(settings.budgetAlerts) { settingsViewModel.setBudgetAlerts(it) } })
             SettingsRow(Lucide.ReceiptText, CategoryTone.BLUE, "Bill Reminders", "3 days before due", trailing = { EFToggle(settings.billReminders) { settingsViewModel.setBillReminders(it) } })
             SettingsRow(Lucide.CalendarDays, CategoryTone.PURPLE, "Weekly Summary", null, trailing = { EFToggle(settings.weeklySummary) { settingsViewModel.setWeeklySummary(it) } })
-            SettingsRow(Lucide.Info, CategoryTone.GREEN, "Goal Milestones", null, last = true, trailing = { EFToggle(settings.goalMilestones) { settingsViewModel.setGoalMilestones(it) } })
+            SettingsRow(Lucide.Info, CategoryTone.GREEN, "Goal Milestones", null, trailing = { EFToggle(settings.goalMilestones) { settingsViewModel.setGoalMilestones(it) } })
+            SettingsRow(
+                Lucide.MessageSquare, CategoryTone.BLUE, "Auto-detect from SMS", "Log credits/debits from bank SMS", last = true,
+                trailing = {
+                    EFToggle(settings.smsAutoDetect) { enabled ->
+                        if (enabled) {
+                            smsPermissionLauncher.launch(
+                                arrayOf(android.Manifest.permission.RECEIVE_SMS, android.Manifest.permission.READ_SMS)
+                            )
+                        } else {
+                            settingsViewModel.setSmsAutoDetect(false)
+                        }
+                    }
+                },
+            )
         }
 
         Spacer(Modifier.height(22.dp))

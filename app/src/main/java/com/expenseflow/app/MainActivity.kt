@@ -215,6 +215,25 @@ private fun MainApp(
         }
     }
 
+    // SMS auto-detect defaults to on; ask for RECEIVE_SMS/READ_SMS up front so
+    // it actually works from first launch instead of only once the user visits
+    // Settings. If the user denies it, flip the setting off so the toggle in
+    // Settings reflects reality rather than silently doing nothing.
+    val settings by settingsViewModel.settings.collectAsState()
+    val smsPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { granted ->
+        if (!granted.values.all { it }) settingsViewModel.setSmsAutoDetect(false)
+    }
+    LaunchedEffect(Unit) {
+        val hasReceiveSms = androidx.core.content.ContextCompat.checkSelfPermission(
+            context, Manifest.permission.RECEIVE_SMS
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (settings.smsAutoDetect && !hasReceiveSms) {
+            smsPermissionLauncher.launch(arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS))
+        }
+    }
+
     // Post a real system notification whenever a budget threshold is crossed.
     LaunchedEffect(Unit) {
         expenseViewModel.budgetAlerts.collect { alert ->

@@ -27,21 +27,27 @@ object NotificationHelper {
     private const val CHANNEL_NAME = "Budget Alerts"
     private const val CHANNEL_DESCRIPTION = "Alerts when you approach or exceed a category budget"
 
+    private const val TXN_CHANNEL_ID = "sms_transactions"
+    private const val TXN_CHANNEL_NAME = "Transaction Detection"
+    private const val TXN_CHANNEL_DESCRIPTION = "Instant alert when a credit or debit is detected from an SMS"
+
     /**
-     * Creates the notification channel. Safe to call multiple times - creating
+     * Creates the notification channels. Safe to call multiple times - creating
      * an existing channel is a no-op. Should be called once at app startup.
      */
     fun createChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = CHANNEL_DESCRIPTION
-            }
             val manager = context.getSystemService(NotificationManager::class.java)
-            manager?.createNotificationChannel(channel)
+            manager?.createNotificationChannel(
+                NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH).apply {
+                    description = CHANNEL_DESCRIPTION
+                }
+            )
+            manager?.createNotificationChannel(
+                NotificationChannel(TXN_CHANNEL_ID, TXN_CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH).apply {
+                    description = TXN_CHANNEL_DESCRIPTION
+                }
+            )
         }
     }
 
@@ -119,5 +125,44 @@ object NotificationHelper {
         // notification (and re-alerts replace the previous one for that category).
         NotificationManagerCompat.from(context)
             .notify(alert.category.hashCode(), notification)
+    }
+
+    /**
+     * Posts an instant notification the moment a bank SMS is parsed into a
+     * credit or debit — fired right after the transaction is auto-logged, so
+     * the user sees it appear the same way a manual entry would look, just
+     * without having to type it in.
+     */
+    fun showTransactionDetected(
+        context: Context,
+        title: String,
+        amount: Double,
+        isExpense: Boolean,
+        currencySymbol: String,
+    ) {
+        createChannel(context)
+        if (!hasNotificationPermission(context)) return
+
+        val formatted = String.format(Locale.US, "%,.2f", amount)
+        val notifTitle = if (isExpense) "Debit detected" else "Credit detected"
+        val message = if (isExpense) {
+            "$currencySymbol$formatted spent on $title — added to your expenses."
+        } else {
+            "$currencySymbol$formatted received from $title — added to your income."
+        }
+        val color = if (isExpense) R.color.ef_money_out else R.color.ef_money_in
+
+        val notification = NotificationCompat.Builder(context, TXN_CHANNEL_ID)
+            .setSmallIcon(R.drawable._notification_1)
+            .setContentTitle(notifTitle)
+            .setContentText(message)
+            .setColor(ContextCompat.getColor(context, color))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setAutoCancel(true)
+            .build()
+
+        NotificationManagerCompat.from(context)
+            .notify(System.currentTimeMillis().toInt(), notification)
     }
 }

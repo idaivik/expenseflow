@@ -15,4 +15,6 @@
     <color name="ef_cat_orange">#FFF5811F</color>
     <color name="ef_tint_orange">#FFFDEEDE</color>
     <color name="ef_cat_red">#FFF0324B</color>
+    <color name="ef_money_in">#FF29C26B</color>
+    <color name="ef_money_out">#FFF0324B</color>
 </resources>
