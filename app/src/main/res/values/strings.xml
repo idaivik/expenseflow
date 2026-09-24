@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">ExpenseFlow</string>
+    <string name="widget_name">ExpenseFlow Quick Glance</string>
+    <string name="widget_description">View your monthly balance and quick expense summary.</string>
+    <string name="quick_expense_widget_name">ExpenseFlow Quick Expense</string>
+    <string name="quick_expense_widget_description">One-tap quick expense logging and category shortcuts.</string>
+    <string name="daily_budget_widget_name">ExpenseFlow Daily Budget</string>
+    <string name="daily_budget_widget_description">Track how much you can safely spend today and daily budget pace.</string>
+</resources>

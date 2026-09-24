@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Collapsed custom budget-alert notification (RemoteViews).
+     Wrapped by NotificationCompat.DecoratedCustomViewStyle, which supplies the
+     app name / timestamp header, so this only holds the body. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp">
+
+    <ImageView
+        android:id="@+id/notif_icon"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:background="@drawable/notif_tile_bg"
+        android:padding="11dp"
+        android:src="@drawable/_chart"
+        android:scaleType="fitCenter"
+        android:contentDescription="@null" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="12dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/notif_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textAppearance="@style/TextAppearance.Compat.Notification.Title"
+            android:text="Budget alert" />
+
+        <TextView
+            android:id="@+id/notif_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:textAppearance="@style/TextAppearance.Compat.Notification"
+            android:text="You're approaching a category budget." />
+    </LinearLayout>
+</LinearLayout>

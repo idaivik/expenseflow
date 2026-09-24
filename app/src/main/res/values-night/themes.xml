@@ -1,0 +1,10 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.Expenseflow" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/ef_brand</item>
+        <item name="colorPrimaryVariant">@color/ef_brand</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="android:windowBackground">@color/ef_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>
