@@ -53,24 +53,51 @@ object SmsParser {
         RegexOption.IGNORE_CASE,
     )
 
-    // Payment-app notifications ("Paid ₹10 to X", "₹10 sent to X", "Payment of ₹10 successful")
-    // use looser wording than bank SMS, so they get a few extra verbs.
+    // Payment-app notifications ("Paid ₹10 to X", "₹10 sent to X", "Money received") use looser
+    // wording than bank SMS, so they get a wider vocabulary.
     private val notificationDebitWords = Regex(
-        """\b(sent|payment successful|payment of .{1,20} successful|transferred)\b""",
+        """\b(paid|sent|spent|debited|deducted|withdrawn|purchase|payment (?:of .{1,20} )?(?:successful|done|completed)|transferred|debit)\b""",
+        RegexOption.IGNORE_CASE,
+    )
+    private val notificationCreditWords = Regex(
+        """\b(received|credited|deposited|refund(?:ed)?|added to|credit)\b""",
         RegexOption.IGNORE_CASE,
     )
 
-    /** Like [parse], but also understands payment-app notification phrasing. */
-    fun parseNotification(text: String): ParsedSmsTransaction? =
-        parse(text) ?: parse(text, extraDebit = true)
+    /**
+     * Parser for payment-app / bank notifications. Any notification with an amount and a
+     * paid-or-credited verb becomes a transaction; if both kinds of verb appear (e.g. "Paid ₹10,
+     * cashback credited"), whichever comes first decides the direction.
+     */
+    fun parseNotification(text: String): ParsedSmsTransaction? {
+        val body = text.trim()
+        if (body.isEmpty() || exclusionWords.containsMatchIn(body)) return null
 
-    fun parse(body: String, extraDebit: Boolean = false): ParsedSmsTransaction? {
+        val debit = notificationDebitWords.find(body)
+        val credit = notificationCreditWords.find(body)
+        if (debit == null && credit == null) return null
+        val isDebit = credit == null || (debit != null && debit.range.first <= credit.range.first)
+
+        val amount = amountRegex.find(body)?.groupValues?.get(1)?.replace(",", "")?.toDoubleOrNull()
+            ?.takeIf { it > 0.0 } ?: return null
+
+        val merchant = merchantRegex.find(body)?.groupValues?.get(1)?.trim()
+        val title = when {
+            !merchant.isNullOrBlank() -> merchant.split(" ").joinToString(" ") { w ->
+                w.lowercase().replaceFirstChar { it.uppercase() }
+            }
+            isDebit -> "Card/UPI payment"
+            else -> "Bank credit"
+        }
+        return ParsedSmsTransaction(amount = amount, isExpense = isDebit, title = title)
+    }
+
+    fun parse(body: String): ParsedSmsTransaction? {
         val text = body.trim()
         if (text.isEmpty()) return null
         if (exclusionWords.containsMatchIn(text)) return null
 
-        val isDebit = debitWords.containsMatchIn(text) ||
-            (extraDebit && notificationDebitWords.containsMatchIn(text))
+        val isDebit = debitWords.containsMatchIn(text)
         val isCredit = creditWords.containsMatchIn(text)
         // Ambiguous (mentions both, or neither) — not confident enough to auto-log.
         if (isDebit == isCredit) return null
